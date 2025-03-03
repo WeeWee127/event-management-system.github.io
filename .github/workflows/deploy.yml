@@ -13,19 +13,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Debug Secrets
-        run: |
-          if [ -n "${{ secrets.VITE_SUPABASE_URL }}" ]; then
-            echo "VITE_SUPABASE_URL is set"
-          else
-            echo "VITE_SUPABASE_URL is NOT set"
-          fi
-          if [ -n "${{ secrets.VITE_SUPABASE_ANON_KEY }}" ]; then
-            echo "VITE_SUPABASE_ANON_KEY is set"
-          else
-            echo "VITE_SUPABASE_ANON_KEY is NOT set"
-          fi
-
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -34,15 +21,14 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      - name: Create env file
         run: |
-          echo "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}" >> .env
-          echo "VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}" >> .env
-          cat .env
-          npm run build
+          touch .env
+          echo VITE_SUPABASE_URL="https://qkicbsscsauxgwdktojb.supabase.co" >> .env
+          echo VITE_SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFraWNic3Njc2F1eGd3ZGt0b2piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA5OTUxMzcsImV4cCI6MjA1NjU3MTEzN30.02D1hUP6nVjNV-qjJPyIZp2YJJ27yFBHX1r7i6bjSZ4" >> .env
+
+      - name: Build
+        run: npm run build
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3

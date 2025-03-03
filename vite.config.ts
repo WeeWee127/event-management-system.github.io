@@ -7,5 +7,5 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
-  base: '/event-management-system/',
+  base: '/event-management-system.github.io/',
 });

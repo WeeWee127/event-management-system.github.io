@@ -3,7 +3,7 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
 
-// Components
+// Components and configuration for the Event Management System
 import Layout from './components/Layout';
 import Auth from './components/Auth';
 

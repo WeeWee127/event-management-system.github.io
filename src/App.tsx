@@ -1,66 +1,65 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { supabase } from './lib/supabase';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import RoleBasedRoute from './components/RoleBasedRoute';
+import { UserRole } from './contexts/AuthContext';
 
-// Components and configuration for the Event Management System
+// Components and Pages
 import Layout from './components/Layout';
 import Auth from './components/Auth';
-
-// Pages
 import HomePage from './pages/HomePage';
 import CreateEventPage from './pages/CreateEventPage';
 import EditEventPage from './pages/EditEventPage';
 import MyEventsPage from './pages/MyEventsPage';
-
-// Protected route component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const getUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUser(data.user);
-      setLoading(false);
-    };
-    getUser();
-  }, []);
-
-  if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  return <>{children}</>;
-};
+import DocumentationPage from './pages/DocumentationPage';
+import AdminPage from './pages/AdminPage';
+import RegisterForm from './components/RegisterForm';
+import CreateEventForm from './components/CreateEventForm';
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/" element={<Layout />}>
-          <Route index element={<HomePage />} />
-          <Route path="my-events" element={
-            <ProtectedRoute>
-              <MyEventsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="create-event" element={
-            <ProtectedRoute>
-              <CreateEventPage />
-            </ProtectedRoute>
-          } />
-          <Route path="edit-event/:id" element={
-            <ProtectedRoute>
-              <EditEventPage />
-            </ProtectedRoute>
-          } />
-        </Route>
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <div className="min-h-screen bg-gray-100">
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/" element={<Layout />}>
+              <Route index element={<HomePage />} />
+              
+              {/* Захищені маршрути для звичайних користувачів */}
+              <Route path="my-events" element={
+                <RoleBasedRoute>
+                  <MyEventsPage />
+                </RoleBasedRoute>
+              } />
+              <Route path="create-event" element={
+                <RoleBasedRoute>
+                  <CreateEventPage />
+                </RoleBasedRoute>
+              } />
+              <Route path="edit-event/:id" element={
+                <RoleBasedRoute>
+                  <EditEventPage />
+                </RoleBasedRoute>
+              } />
+              
+              {/* Документація доступна всім */}
+              <Route path="documentation" element={<DocumentationPage />} />
+              
+              {/* Захищений маршрут тільки для адміністраторів */}
+              <Route path="admin" element={
+                <RoleBasedRoute requiredRole={UserRole.ADMIN}>
+                  <AdminPage />
+                </RoleBasedRoute>
+              } />
+            </Route>
+            
+            <Route path="/register" element={<RegisterForm />} />
+            <Route path="/create-event" element={<CreateEventForm />} />
+          </Routes>
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 

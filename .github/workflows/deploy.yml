@@ -8,9 +8,14 @@ on:
 permissions:
   contents: write
 
+env:
+  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+  VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment: github-pages
 
     steps:
       - name: Checkout
@@ -25,10 +30,20 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+      - name: Debug Environment Variables
+        run: |
+          if [ -n "$VITE_SUPABASE_URL" ]; then
+            echo "VITE_SUPABASE_URL is set"
+          else
+            echo "VITE_SUPABASE_URL is NOT set"
+          fi
+          if [ -n "$VITE_SUPABASE_ANON_KEY" ]; then
+            echo "VITE_SUPABASE_ANON_KEY is set"
+          else
+            echo "VITE_SUPABASE_ANON_KEY is NOT set"
+          fi
+
       - name: Build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
       - name: Deploy

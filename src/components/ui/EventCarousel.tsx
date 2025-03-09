@@ -10,20 +10,24 @@ interface Event {
   id: string;
   title: string;
   description: string;
-  date: string;
+  start_date: string;
+  end_date?: string;
   location: string;
-  max_participants: number;
+  max_attendees: number;
   image_url?: string;
 }
 
 const EventCarousel: React.FC = () => {
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFeaturedEvents = async () => {
       try {
         setLoading(true);
+        setError(null);
+        
         const { data, error } = await supabase
           .from('events')
           .select('*')
@@ -31,9 +35,16 @@ const EventCarousel: React.FC = () => {
           .limit(5);
 
         if (error) throw error;
+        
+        if (!data || data.length === 0) {
+          setFeaturedEvents([]);
+          return;
+        }
+        
         setFeaturedEvents(data || []);
       } catch (error) {
         console.error('Error fetching featured events:', error);
+        setError('Помилка завантаження подій. Спробуйте пізніше.');
       } finally {
         setLoading(false);
       }
@@ -72,6 +83,16 @@ const EventCarousel: React.FC = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="w-full h-64 bg-red-100 rounded-lg">
+        <div className="flex items-center justify-center h-full">
+          <span className="text-red-600">{error}</span>
+        </div>
+      </div>
+    );
+  }
+
   if (featuredEvents.length === 0) {
     return (
       <div className="w-full h-64 bg-gray-100 rounded-lg">
@@ -104,7 +125,7 @@ const EventCarousel: React.FC = () => {
                   <div className="flex flex-wrap gap-4 mb-4">
                     <div className="flex items-center text-white">
                       <FaCalendarAlt className="mr-2" />
-                      <span>{new Date(event.date).toLocaleDateString('uk-UA', { 
+                      <span>{new Date(event.start_date).toLocaleDateString('uk-UA', { 
                         day: 'numeric', 
                         month: 'long', 
                         year: 'numeric' 
@@ -116,7 +137,7 @@ const EventCarousel: React.FC = () => {
                     </div>
                     <div className="flex items-center text-white">
                       <FaUsers className="mr-2" />
-                      <span>До {event.max_participants} учасників</span>
+                      <span>До {event.max_attendees} учасників</span>
                     </div>
                   </div>
                   

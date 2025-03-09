@@ -1,207 +1,153 @@
-import React, { useState } from 'react';
-import { FaFilter, FaSort, FaSearch } from 'react-icons/fa';
-
-export interface EventFiltersProps {
-  onFilterChange: (filters: FilterState) => void;
-  onSortChange: (sortBy: string, sortOrder: 'asc' | 'desc') => void;
-  onSearch: (query: string) => void;
-}
+import React from 'react';
+import { FaFilter, FaSort } from 'react-icons/fa';
 
 export interface FilterState {
-  location?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  isPrivate?: boolean;
-  maxPrice?: number;
+  eventType: string;
+  dateRange: string;
+  isPrivate: string;
+  price: string;
+  location: string;
 }
 
-const EventFilters: React.FC<EventFiltersProps> = ({ 
-  onFilterChange, 
-  onSortChange,
-  onSearch 
+interface EventFiltersProps {
+  filters: FilterState;
+  sortBy: string;
+  locations: string[];
+  onFilterChange: (filterName: string, value: string) => void;
+  onSortChange: (value: string) => void;
+}
+
+const EventFilters: React.FC<EventFiltersProps> = ({
+  filters,
+  sortBy,
+  locations,
+  onFilterChange,
+  onSortChange
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState<FilterState>({});
-  const [sortBy, setSortBy] = useState('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  
-  const handleFilterChange = (field: keyof FilterState, value: any) => {
-    const newFilters = { ...filters, [field]: value };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
-  };
-  
-  const handleSortChange = (field: string) => {
-    // Якщо вибрано те ж поле - міняємо порядок, інакше - встановлюємо нове поле із порядком asc
-    const newOrder = field === sortBy && sortOrder === 'asc' ? 'desc' : 'asc';
-    setSortOrder(newOrder);
-    setSortBy(field);
-    onSortChange(field, newOrder);
-  };
-  
-  const handleReset = () => {
-    setFilters({});
-    setSortBy('date');
-    setSortOrder('asc');
-    setSearchQuery('');
-    onFilterChange({});
-    onSortChange('date', 'asc');
-    onSearch('');
-  };
-  
-  const handleSearch = () => {
-    onSearch(searchQuery);
-  };
-  
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-      <div className="flex justify-between items-center mb-2">
-        <div className="flex gap-2">
-          <button 
-            onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-md transition-colors"
+    <div className="bg-gray-100 p-4 rounded-lg mb-6">
+      <div className="flex items-center mb-4">
+        <FaFilter className="text-gray-600 mr-2" />
+        <h3 className="text-lg font-semibold text-gray-800">Фільтри</h3>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Тип події */}
+        <div>
+          <label htmlFor="eventType" className="block text-sm font-medium text-gray-700 mb-1">
+            Тип події
+          </label>
+          <select
+            id="eventType"
+            value={filters.eventType}
+            onChange={(e) => onFilterChange('eventType', e.target.value)}
+            className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           >
-            <FaFilter className="mr-2" />
-            Фільтри
-          </button>
-          
-          <div className="relative">
-            <button 
-              className="flex items-center bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-md transition-colors"
-              onClick={() => handleSortChange(sortBy)}
-            >
-              <FaSort className="mr-2" />
-              Сортувати: {sortBy === 'date' ? 'за датою' : sortBy === 'title' ? 'за назвою' : 'за популярністю'}
-              {sortOrder === 'asc' ? ' ↑' : ' ↓'}
-            </button>
-            <div className="absolute z-10 mt-1 hidden group-hover:block bg-white rounded-md shadow-lg w-48">
-              <div className="py-1">
-                <button 
-                  onClick={() => handleSortChange('date')}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100"
-                >
-                  За датою
-                </button>
-                <button 
-                  onClick={() => handleSortChange('title')}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100"
-                >
-                  За назвою
-                </button>
-                <button 
-                  onClick={() => handleSortChange('popularity')}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100"
-                >
-                  За популярністю
-                </button>
-              </div>
-            </div>
-          </div>
+            <option value="all">Усі типи</option>
+            <option value="conference">Конференція</option>
+            <option value="workshop">Майстер-клас</option>
+            <option value="meetup">Зустріч</option>
+            <option value="concert">Концерт</option>
+            <option value="exhibition">Виставка</option>
+          </select>
         </div>
-        
-        <div className="flex">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Пошук подій..."
-              className="border border-gray-300 rounded-l-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <button 
-              onClick={handleSearch}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-r-md"
-            >
-              <FaSearch />
-            </button>
-          </div>
+
+        {/* Дата */}
+        <div>
+          <label htmlFor="dateRange" className="block text-sm font-medium text-gray-700 mb-1">
+            Дата
+          </label>
+          <select
+            id="dateRange"
+            value={filters.dateRange}
+            onChange={(e) => onFilterChange('dateRange', e.target.value)}
+            className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          >
+            <option value="all">Усі дати</option>
+            <option value="today">Сьогодні</option>
+            <option value="this-week">Цього тижня</option>
+            <option value="this-month">Цього місяця</option>
+          </select>
+        </div>
+
+        {/* Приватність */}
+        <div>
+          <label htmlFor="isPrivate" className="block text-sm font-medium text-gray-700 mb-1">
+            Доступність
+          </label>
+          <select
+            id="isPrivate"
+            value={filters.isPrivate}
+            onChange={(e) => onFilterChange('isPrivate', e.target.value)}
+            className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          >
+            <option value="all">Усі події</option>
+            <option value="public">Публічні</option>
+            <option value="private">Приватні</option>
+          </select>
+        </div>
+
+        {/* Ціна */}
+        <div>
+          <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">
+            Ціна
+          </label>
+          <select
+            id="price"
+            value={filters.price}
+            onChange={(e) => onFilterChange('price', e.target.value)}
+            className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          >
+            <option value="all">Будь-яка ціна</option>
+            <option value="free">Безкоштовно</option>
+            <option value="paid">Платно</option>
+          </select>
+        </div>
+
+        {/* Локація */}
+        <div>
+          <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
+            Локація
+          </label>
+          <select
+            id="location"
+            value={filters.location}
+            onChange={(e) => onFilterChange('location', e.target.value)}
+            className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          >
+            <option value="all">Усі локації</option>
+            {locations.map((location) => (
+              <option key={location} value={location}>
+                {location}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
-      
-      {isOpen && (
-        <div className="mt-4 border-t pt-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Локація
-              </label>
-              <input
-                type="text"
-                value={filters.location || ''}
-                onChange={(e) => handleFilterChange('location', e.target.value)}
-                placeholder="Введіть місце проведення"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Дата початку
-              </label>
-              <input
-                type="date"
-                value={filters.dateFrom || ''}
-                onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Дата кінця
-              </label>
-              <input
-                type="date"
-                value={filters.dateTo || ''}
-                onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Максимальна ціна
-              </label>
-              <input
-                type="number"
-                value={filters.maxPrice || ''}
-                onChange={(e) => handleFilterChange('maxPrice', e.target.value ? Number(e.target.value) : undefined)}
-                placeholder="Введіть макс. ціну"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-            
-            <div className="flex items-center">
-              <input
-                id="private"
-                type="checkbox"
-                checked={!!filters.isPrivate}
-                onChange={(e) => handleFilterChange('isPrivate', e.target.checked)}
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-              />
-              <label htmlFor="private" className="ml-2 block text-sm text-gray-900">
-                Тільки приватні події
-              </label>
-            </div>
-          </div>
-          
-          <div className="mt-4 flex justify-end">
-            <button
-              onClick={handleReset}
-              className="mr-2 bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-md"
-            >
-              Скинути
-            </button>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md"
-            >
-              Застосувати
-            </button>
-          </div>
+
+      {/* Сортування */}
+      <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="flex items-center mb-2">
+          <FaSort className="text-gray-600 mr-2" />
+          <h3 className="text-lg font-semibold text-gray-800">Сортування</h3>
         </div>
-      )}
+
+        <div>
+          <select
+            id="sortBy"
+            value={sortBy}
+            onChange={(e) => onSortChange(e.target.value)}
+            className="w-full md:w-auto rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          >
+            <option value="date-desc">Дата (найновіші спочатку)</option>
+            <option value="date-asc">Дата (найстаріші спочатку)</option>
+            <option value="title-asc">Назва (А-Я)</option>
+            <option value="title-desc">Назва (Я-А)</option>
+            <option value="price-asc">Ціна (від найнижчої)</option>
+            <option value="price-desc">Ціна (від найвищої)</option>
+          </select>
+        </div>
+      </div>
     </div>
   );
 };

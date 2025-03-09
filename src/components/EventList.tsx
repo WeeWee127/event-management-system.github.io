@@ -4,260 +4,286 @@ import { Calendar, MapPin, Users, Edit, Trash2, UserCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Database } from '../lib/database.types';
 import RegistrationsList from './RegistrationsList';
-import EventCard from './ui/EventCard';
+import EventCard from './EventCard';
 import EventCarousel from './ui/EventCarousel';
 import EventFilters, { FilterState } from './ui/EventFilters';
-import { FaExclamationTriangle } from 'react-icons/fa';
+import { FaExclamationTriangle, FaSearch } from 'react-icons/fa';
+import Pagination from './ui/Pagination';
 
-interface Event {
+export interface EventType {
   id: string;
   title: string;
   description: string;
   start_date: string;
-  end_date: string;
+  end_date?: string;
   location: string;
-  max_attendees: number | null;
-  user_id: string;
-  created_at: string;
-  is_private?: boolean;
-  registration_deadline?: string;
-  price?: number | null;
-  tags?: Array<{ name: string }>;
+  event_type: string;
+  is_private: boolean;
+  price: number;
+  max_attendees: number;
   image_url?: string;
+  created_at: string;
 }
 
 const EventList: React.FC = () => {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<EventType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const eventsPerPage = 6;
+  const [eventsPerPage] = useState(6);
   
-  const [filters, setFilters] = useState<FilterState>({});
-  const [sortBy, setSortBy] = useState('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [searchQuery, setSearchQuery] = useState('');
+  // Фільтри
+  const [filters, setFilters] = useState<FilterState>({
+    eventType: 'all',
+    dateRange: 'all',
+    isPrivate: 'all',
+    price: 'all',
+    location: 'all'
+  });
+
+  // Сортування
+  const [sortBy, setSortBy] = useState('date-desc');
 
   useEffect(() => {
     fetchEvents();
   }, []);
-  
-  useEffect(() => {
-    // Застосовуємо фільтри, сортування та пошук до списку подій
-    let filtered = [...events];
-    
-    // Фільтрація за пошуковим запитом
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(event => 
-        event.title.toLowerCase().includes(query) || 
-        event.description.toLowerCase().includes(query) ||
-        event.location.toLowerCase().includes(query)
-      );
-    }
-    
-    // Фільтрація за локацією
-    if (filters.location) {
-      filtered = filtered.filter(event => 
-        event.location.toLowerCase().includes(filters.location!.toLowerCase())
-      );
-    }
-    
-    // Фільтрація за датою
-    if (filters.dateFrom) {
-      const fromDate = new Date(filters.dateFrom);
-      filtered = filtered.filter(event => new Date(event.start_date) >= fromDate);
-    }
-    
-    if (filters.dateTo) {
-      const toDate = new Date(filters.dateTo);
-      toDate.setHours(23, 59, 59, 999); // Встановлюємо час на кінець дня
-      filtered = filtered.filter(event => new Date(event.start_date) <= toDate);
-    }
-    
-    // Фільтрація за приватністю
-    if (filters.isPrivate !== undefined) {
-      filtered = filtered.filter(event => 
-        (event.is_private === filters.isPrivate)
-      );
-    }
-    
-    // Фільтрація за ціною
-    if (filters.maxPrice !== undefined) {
-      filtered = filtered.filter(event => 
-        event.price === null || event.price === undefined || event.price <= filters.maxPrice!
-      );
-    }
-    
-    // Сортування
-    filtered.sort((a, b) => {
-      if (sortBy === 'date') {
-        return sortOrder === 'asc' 
-          ? new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
-          : new Date(b.start_date).getTime() - new Date(a.start_date).getTime();
-      } else if (sortBy === 'title') {
-        return sortOrder === 'asc'
-          ? a.title.localeCompare(b.title)
-          : b.title.localeCompare(a.title);
-      } else { // popularity - за кількістю max_attendees як приклад
-        const aValue = a.max_attendees || 0; // Використовуємо 0, якщо значення null
-        const bValue = b.max_attendees || 0;
-        return sortOrder === 'asc'
-          ? aValue - bValue
-          : bValue - aValue;
-      }
-    });
-    
-    setFilteredEvents(filtered);
-    setTotalPages(Math.ceil(filtered.length / eventsPerPage));
-    setCurrentPage(1); // Скидаємо на першу сторінку при зміні фільтрів
-  }, [events, filters, sortBy, sortOrder, searchQuery]);
 
-  const fetchEvents = async () => {
+  async function fetchEvents() {
     try {
       setLoading(true);
       setError(null);
-
-      const { data, error } = await supabase
-        .from('events')
-        .select('*');
-
-      if (error) throw error;
       
-      setEvents(data || []);
-      setFilteredEvents(data || []);
-      setTotalPages(Math.ceil((data?.length || 0) / eventsPerPage));
+      let { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      // Перевіряємо, чи отримали дані
+      if (!data) {
+        setEvents([]);
+        return;
+      }
+
+      setEvents(data);
     } catch (error) {
       console.error('Error fetching events:', error);
       setError('Помилка завантаження подій. Спробуйте пізніше.');
     } finally {
       setLoading(false);
     }
-  };
-  
-  const handleFilterChange = (newFilters: FilterState) => {
-    setFilters(newFilters);
-  };
-  
-  const handleSortChange = (newSortBy: string, newSortOrder: 'asc' | 'desc') => {
-    setSortBy(newSortBy);
-    setSortOrder(newSortOrder);
-  };
-  
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-  };
-  
-  // Обчислюємо індекси для поточної сторінки
+  }
+
+  // Фільтрація подій
+  const filteredEvents = events.filter(event => {
+    // Пошук
+    const matchesSearch = 
+      searchTerm === '' || 
+      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.location.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Тип події
+    const matchesType = 
+      filters.eventType === 'all' || 
+      event.event_type === filters.eventType;
+
+    // Дата
+    let matchesDate = true;
+    const eventDate = new Date(event.start_date);
+    const now = new Date();
+    
+    if (filters.dateRange === 'today') {
+      matchesDate = eventDate.toDateString() === now.toDateString();
+    } else if (filters.dateRange === 'this-week') {
+      const weekEnd = new Date();
+      weekEnd.setDate(now.getDate() + 7);
+      matchesDate = eventDate >= now && eventDate <= weekEnd;
+    } else if (filters.dateRange === 'this-month') {
+      const monthEnd = new Date();
+      monthEnd.setMonth(now.getMonth() + 1);
+      matchesDate = eventDate >= now && eventDate <= monthEnd;
+    }
+
+    // Приватність
+    const matchesPrivacy = 
+      filters.isPrivate === 'all' || 
+      (filters.isPrivate === 'private' && event.is_private) ||
+      (filters.isPrivate === 'public' && !event.is_private);
+
+    // Ціна
+    let matchesPrice = true;
+    if (filters.price === 'free') {
+      matchesPrice = event.price === 0;
+    } else if (filters.price === 'paid') {
+      matchesPrice = event.price > 0;
+    }
+
+    // Локація
+    const matchesLocation = 
+      filters.location === 'all' || 
+      event.location === filters.location;
+
+    return matchesSearch && matchesType && matchesDate && matchesPrivacy && matchesPrice && matchesLocation;
+  });
+
+  // Сортування подій
+  const sortedEvents = [...filteredEvents].sort((a, b) => {
+    if (sortBy === 'date-asc') {
+      return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+    } else if (sortBy === 'date-desc') {
+      return new Date(b.start_date).getTime() - new Date(a.start_date).getTime();
+    } else if (sortBy === 'title-asc') {
+      return a.title.localeCompare(b.title);
+    } else if (sortBy === 'title-desc') {
+      return b.title.localeCompare(a.title);
+    } else if (sortBy === 'price-asc') {
+      return a.price - b.price;
+    } else if (sortBy === 'price-desc') {
+      return b.price - a.price;
+    }
+    return 0;
+  });
+
+  // Пагінація
   const indexOfLastEvent = currentPage * eventsPerPage;
   const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
-  const currentEvents = filteredEvents.slice(indexOfFirstEvent, indexOfLastEvent);
-  
-  // Зміна сторінки
-  const handlePageChange = (pageNumber: number) => {
-    setCurrentPage(pageNumber);
-    window.scrollTo(0, 0); // Прокручуємо до верху сторінки
+  const currentEvents = sortedEvents.slice(indexOfFirstEvent, indexOfLastEvent);
+  const totalPages = Math.ceil(sortedEvents.length / eventsPerPage);
+
+  // Унікальні локації для фільтра
+  const locations = Array.from(new Set(events.map(event => event.location)));
+
+  // Обробники подій
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
   };
 
-  if (loading && events.length === 0) {
+  const handleFilterChange = (filterName: string, value: string) => {
+    setFilters({
+      ...filters,
+      [filterName]: value
+    });
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (value: string) => {
+    setSortBy(value);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
+
+  if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-64 p-8">
-        <div className="w-12 h-12 border-t-2 border-b-2 border-indigo-500 rounded-full animate-spin mb-4"></div>
-        <p className="text-gray-600">Завантаження подій...</p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-white p-4 rounded-lg shadow-md animate-pulse">
+              <div className="h-48 bg-gray-300 rounded-md mb-4"></div>
+              <div className="h-8 bg-gray-300 rounded-md mb-4 w-3/4"></div>
+              <div className="h-4 bg-gray-300 rounded-md mb-2"></div>
+              <div className="h-4 bg-gray-300 rounded-md mb-2 w-5/6"></div>
+              <div className="h-4 bg-gray-300 rounded-md mb-4 w-2/3"></div>
+              <div className="h-10 bg-gray-300 rounded-md w-1/2"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="p-6 bg-red-100 rounded-lg text-center">
+          <p className="text-red-600 text-lg">{error}</p>
+          <button 
+            onClick={fetchEvents} 
+            className="mt-4 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
+          >
+            Спробувати знову
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Карусель подій */}
       <EventCarousel />
       
-      {/* Фільтри подій */}
-      <EventFilters 
-        onFilterChange={handleFilterChange}
-        onSortChange={handleSortChange}
-        onSearch={handleSearch}
-      />
-      
-      {/* Відображення помилки */}
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6 flex items-center">
-          <FaExclamationTriangle className="mr-2" />
-          <span>{error}</span>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-6">Усі події</h1>
+        
+        {/* Пошук */}
+        <div className="relative mb-6">
+          <input
+            type="text"
+            placeholder="Пошук подій..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            className="w-full py-3 px-12 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          />
+          <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
         </div>
-      )}
-      
-      {/* Показуємо к-сть знайдених подій */}
-      <div className="mb-6 text-gray-600">
-        Знайдено подій: {filteredEvents.length}
+        
+        {/* Фільтри та сортування */}
+        <EventFilters 
+          filters={filters} 
+          sortBy={sortBy} 
+          locations={locations}
+          onFilterChange={handleFilterChange}
+          onSortChange={handleSortChange}
+        />
       </div>
       
-      {/* Список подій */}
-      {filteredEvents.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-xl text-gray-600">
-            Не знайдено подій, що відповідають заданим критеріям
-          </p>
-        </div>
-      ) : (
+      {/* Результати */}
+      {sortedEvents.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {currentEvents.map((event) => (
-              <EventCard
-                key={event.id}
-                id={event.id}
-                title={event.title}
-                description={event.description}
-                date={event.start_date}
-                location={event.location}
-                maxParticipants={event.max_attendees || 0}
-                imageUrl={event.image_url}
-                tags={event.tags}
-                price={event.price}
-                isPrivate={event.is_private}
-                registrationDeadline={event.registration_deadline}
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {currentEvents.map(event => (
+              <EventCard key={event.id} event={event} />
             ))}
           </div>
           
           {/* Пагінація */}
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-8">
-              <nav className="inline-flex">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Попередня
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`px-3 py-1 border border-gray-300 text-sm font-medium ${
-                      currentPage === page
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-white text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Наступна
-                </button>
-              </nav>
-            </div>
+          {sortedEvents.length > eventsPerPage && (
+            <Pagination 
+              currentPage={currentPage} 
+              totalPages={totalPages} 
+              onPageChange={handlePageChange} 
+            />
           )}
         </>
+      ) : (
+        <div className="text-center py-12 bg-gray-100 rounded-lg">
+          <p className="text-gray-600 text-lg">Подій, що відповідають критеріям пошуку, не знайдено.</p>
+          {searchTerm || Object.values(filters).some(v => v !== 'all') ? (
+            <button 
+              onClick={() => {
+                setSearchTerm('');
+                setFilters({
+                  eventType: 'all',
+                  dateRange: 'all',
+                  isPrivate: 'all',
+                  price: 'all',
+                  location: 'all'
+                });
+              }}
+              className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
+            >
+              Скинути фільтри
+            </button>
+          ) : null}
+        </div>
       )}
     </div>
   );

@@ -26,19 +26,22 @@ function App() {
   const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
+  console.log('App rendering...');
+
   useEffect(() => {
     // Перевірка з'єднання з Supabase при завантаженні додатка
     const checkConnection = async () => {
       try {
         const isConnected = await checkSupabaseConnection();
+        console.log('Supabase connection status:', isConnected);
         setIsSupabaseConnected(isConnected);
         if (!isConnected) {
-          setConnectionError('Не вдалося з\'єднатися з базою даних. Будь ласка, спробуйте пізніше.');
+          setConnectionError('Не вдалося з\'єднатися з базою даних. Використовуємо тестові дані.');
         }
       } catch (error) {
         console.error('Помилка перевірки з\'єднання з Supabase:', error);
         setIsSupabaseConnected(false);
-        setConnectionError('Виникла помилка при з\'єднанні з базою даних. Спробуйте оновити сторінку.');
+        setConnectionError('Виникла помилка при з\'єднанні з базою даних. Використовуємо тестові дані.');
       }
     };
 
@@ -55,29 +58,19 @@ function App() {
     );
   }
 
-  // Відображення помилки, якщо з'єднання не встановлено
-  if (isSupabaseConnected === false) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg max-w-lg text-center">
-          <h2 className="text-xl font-bold mb-2">Помилка з'єднання</h2>
-          <p className="mb-4">{connectionError}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200"
-          >
-            Спробувати знову
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Відображення попередження, якщо з'єднання не встановлено
+  const ConnectionWarning = () => (
+    <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-2 rounded-lg mb-4">
+      <p>{connectionError}</p>
+    </div>
+  );
 
   return (
-    <Router basename="/event-management-system.github.io">
+    <Router>
       <div className="flex flex-col min-h-screen">
         <Header />
         <main className="flex-grow">
+          {!isSupabaseConnected && <ConnectionWarning />}
           <Routes>
             <Route path="/" element={<EventList />} />
             <Route path="/event/:id" element={<EventDetails />} />

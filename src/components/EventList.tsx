@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { Calendar, MapPin, Users, Edit, Trash2, UserCheck } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase, getSupabaseEnvVars } from '../lib/supabase';
 import { Database } from '../lib/database.types';
 import RegistrationsList from './RegistrationsList';
 import EventCard from './EventCard';
@@ -25,6 +25,118 @@ export interface EventType {
   created_at: string;
 }
 
+// Мок-дані для відображення, якщо Supabase не відповідає
+const mockEvents: EventType[] = [
+  {
+    id: '1',
+    title: 'Конференція Web Development 2024',
+    description: 'Щорічна конференція з веб-розробки з відомими спікерами та майстер-класами.',
+    start_date: new Date(2024, 5, 15).toISOString(),
+    end_date: new Date(2024, 5, 17).toISOString(),
+    location: 'Київ, Україна',
+    event_type: 'conference',
+    is_private: false,
+    price: 1500,
+    max_attendees: 300,
+    image_url: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87',
+    created_at: new Date(2024, 3, 10).toISOString()
+  },
+  {
+    id: '2',
+    title: 'JavaScript Workshop',
+    description: 'Практичний воркшоп з сучасного JavaScript та фреймворків.',
+    start_date: new Date(2024, 6, 10).toISOString(),
+    location: 'Львів, Україна',
+    event_type: 'workshop',
+    is_private: false,
+    price: 800,
+    max_attendees: 50,
+    image_url: 'https://images.unsplash.com/photo-1561726223-741b511d3203',
+    created_at: new Date(2024, 4, 5).toISOString()
+  },
+  {
+    id: '3',
+    title: 'DevOps Meetup',
+    description: 'Зустріч спеціалістів з DevOps для обміну досвідом та нетворкінгу.',
+    start_date: new Date(2024, 5, 25).toISOString(),
+    location: 'Харків, Україна',
+    event_type: 'meetup',
+    is_private: false,
+    price: 0,
+    max_attendees: 100,
+    image_url: 'https://images.unsplash.com/photo-1582192730841-2a682d7375f9',
+    created_at: new Date(2024, 4, 15).toISOString()
+  },
+  {
+    id: '4',
+    title: 'React Advanced',
+    description: 'Поглиблений курс з React, Redux та TypeScript для досвідчених розробників.',
+    start_date: new Date(2024, 7, 5).toISOString(),
+    end_date: new Date(2024, 7, 7).toISOString(),
+    location: 'Одеса, Україна',
+    event_type: 'workshop',
+    is_private: true,
+    price: 2000,
+    max_attendees: 30,
+    image_url: 'https://images.unsplash.com/photo-1633356122102-3fe601e05bd2',
+    created_at: new Date(2024, 5, 1).toISOString()
+  },
+  {
+    id: '5',
+    title: 'IT Security Conference',
+    description: 'Конференція з кібербезпеки та захисту даних.',
+    start_date: new Date(2024, 8, 10).toISOString(),
+    end_date: new Date(2024, 8, 12).toISOString(),
+    location: 'Київ, Україна',
+    event_type: 'conference',
+    is_private: false,
+    price: 1200,
+    max_attendees: 200,
+    image_url: 'https://images.unsplash.com/photo-1614064641938-3bbee52942c7',
+    created_at: new Date(2024, 6, 1).toISOString()
+  },
+  {
+    id: '6',
+    title: 'UX/UI Design Workshop',
+    description: 'Практичний воркшоп з дизайну інтерфейсів та користувацького досвіду.',
+    start_date: new Date(2024, 6, 20).toISOString(),
+    location: 'Дніпро, Україна',
+    event_type: 'workshop',
+    is_private: false,
+    price: 500,
+    max_attendees: 40,
+    image_url: 'https://images.unsplash.com/photo-1586717791821-3f44a563fa4c',
+    created_at: new Date(2024, 5, 20).toISOString()
+  },
+  {
+    id: '7',
+    title: 'Networking Party для IT-спеціалістів',
+    description: 'Неформальна зустріч для нетворкінгу та знайомства з колегами з IT-індустрії.',
+    start_date: new Date(2024, 6, 30).toISOString(),
+    location: 'Львів, Україна',
+    event_type: 'meetup',
+    is_private: false,
+    price: 200,
+    max_attendees: 150,
+    image_url: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622',
+    created_at: new Date(2024, 5, 25).toISOString()
+  },
+  {
+    id: '8',
+    title: 'Data Science Summit',
+    description: 'Саміт зі штучного інтелекту, машинного навчання та аналізу даних.',
+    start_date: new Date(2024, 9, 15).toISOString(),
+    end_date: new Date(2024, 9, 17).toISOString(),
+    location: 'Київ, Україна',
+    event_type: 'conference',
+    is_private: false,
+    price: 1800,
+    max_attendees: 250,
+    image_url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31',
+    created_at: new Date(2024, 7, 10).toISOString()
+  }
+];
+
 const EventList: React.FC = () => {
   const [events, setEvents] = useState<EventType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +144,7 @@ const EventList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [eventsPerPage] = useState(6);
+  const [useMockData, setUseMockData] = useState(false);
   
   // Фільтри
   const [filters, setFilters] = useState<FilterState>({
@@ -54,25 +167,43 @@ const EventList: React.FC = () => {
       setLoading(true);
       setError(null);
       
+      console.log('EventList: Спроба підключення до Supabase...');
+      console.log('EventList: Змінні середовища Supabase:', getSupabaseEnvVars());
+      
       let { data, error } = await supabase
         .from('events')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        throw error;
-      }
+      console.log('EventList: Відповідь от Supabase:', { 
+        dataReceived: !!data, 
+        dataLength: data?.length || 0, 
+        error: error ? JSON.stringify(error) : 'немає'
+      });
 
-      // Перевіряємо, чи отримали дані
-      if (!data) {
-        setEvents([]);
+      if (error) {
+        console.warn('EventList: Помилка при отриманні даних з Supabase, використовуємо мок-дані:', error);
+        setUseMockData(true);
+        setEvents(mockEvents);
         return;
       }
 
+      // Перевіряємо, чи отримали дані
+      if (!data || data.length === 0) {
+        console.log('EventList: Не отримано даних або порожній масив, використовуємо мок-дані');
+        setUseMockData(true);
+        setEvents(mockEvents);
+        return;
+      }
+
+      console.log('EventList: Отримані дані подій:', data.length);
       setEvents(data);
     } catch (error) {
       console.error('Error fetching events:', error);
-      setError('Помилка завантаження подій. Спробуйте пізніше.');
+      console.log('EventList: Помилка, використовуємо мок-дані замість Supabase');
+      setUseMockData(true);
+      setEvents(mockEvents);
+      setError(null); // скидаємо помилку, оскільки ми використовуємо мок-дані
     } finally {
       setLoading(false);
     }
@@ -221,7 +352,9 @@ const EventList: React.FC = () => {
       <EventCarousel />
       
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-6">Усі події</h1>
+        <h1 className="text-3xl font-bold mb-6">
+          Усі події {useMockData && <span className="text-sm font-normal text-gray-500">(тестові дані)</span>}
+        </h1>
         
         {/* Пошук */}
         <div className="relative mb-6">

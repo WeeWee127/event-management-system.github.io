@@ -9,7 +9,7 @@ interface Registration {
   status: string;
   profiles: {
     full_name: string;
-  };
+  } | null;
 }
 
 interface RegistrationsListProps {
@@ -100,7 +100,7 @@ export default function RegistrationsList({ eventId }: RegistrationsListProps) {
             {registrations.map((registration) => (
               <tr key={registration.id}>
                 <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-900">
-                  {registration.profiles.full_name}
+                  {registration.profiles?.full_name || 'Unknown user'}
                 </td>
                 <td className="whitespace-nowrap px-3 py-4 text-sm">
                   <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${

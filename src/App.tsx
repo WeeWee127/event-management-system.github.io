@@ -14,7 +14,6 @@ import MyEventsPage from './pages/MyEventsPage';
 import DocumentationPage from './pages/DocumentationPage';
 import AdminPage from './pages/AdminPage';
 import RegisterForm from './components/RegisterForm';
-import CreateEventForm from './components/CreateEventForm';
 
 function App() {
   return (
@@ -23,6 +22,7 @@ function App() {
         <div className="min-h-screen bg-gray-100">
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/register" element={<RegisterForm />} />
             <Route path="/" element={<Layout />}>
               <Route index element={<HomePage />} />
               
@@ -53,9 +53,6 @@ function App() {
                 </RoleBasedRoute>
               } />
             </Route>
-            
-            <Route path="/register" element={<RegisterForm />} />
-            <Route path="/create-event" element={<CreateEventForm />} />
           </Routes>
         </div>
       </Router>

@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../lib/supabase';
 
 // Схема валідації для тегів
 const tagSchema = z.object({
@@ -64,14 +64,19 @@ const eventSchema = z.object({
   isPrivate: z.boolean().default(false),
   
   registrationDeadline: z.string()
-    .refine(
-      (date, ctx) => {
-        const deadlineDate = new Date(date);
-        const eventDate = new Date(ctx.parent.date);
-        return deadlineDate < eventDate;
-      },
-      'Дедлайн реєстрації має бути раніше дати події'
-    )
+}).superRefine((data, ctx) => {
+  if (data.registrationDeadline && data.date) {
+    const deadlineDate = new Date(data.registrationDeadline);
+    const eventDate = new Date(data.date);
+    
+    if (deadlineDate >= eventDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Дедлайн реєстрації має бути раніше дати події',
+        path: ['registrationDeadline']
+      });
+    }
+  }
 });
 
 type EventFormData = z.infer<typeof eventSchema>;
@@ -170,7 +175,7 @@ export default function CreateEventForm() {
           />
           {errors.title && (
             <p className="mt-1 text-sm text-red-600">
-              {errors.title.message}
+              {errors.title.message?.toString()}
             </p>
           )}
         </div>
@@ -186,7 +191,7 @@ export default function CreateEventForm() {
           />
           {errors.description && (
             <p className="mt-1 text-sm text-red-600">
-              {errors.description.message}
+              {errors.description.message?.toString()}
             </p>
           )}
         </div>
@@ -202,7 +207,7 @@ export default function CreateEventForm() {
           />
           {errors.date && (
             <p className="mt-1 text-sm text-red-600">
-              {errors.date.message}
+              {errors.date.message?.toString()}
             </p>
           )}
         </div>
@@ -219,7 +224,7 @@ export default function CreateEventForm() {
           />
           {errors.registrationDeadline && (
             <p className="mt-1 text-sm text-red-600">
-              {errors.registrationDeadline.message}
+              {errors.registrationDeadline.message?.toString()}
             </p>
           )}
         </div>
@@ -235,7 +240,7 @@ export default function CreateEventForm() {
           />
           {errors.location && (
             <p className="mt-1 text-sm text-red-600">
-              {errors.location.message}
+              {errors.location.message?.toString()}
             </p>
           )}
         </div>
@@ -251,7 +256,7 @@ export default function CreateEventForm() {
           />
           {errors.maxParticipants && (
             <p className="mt-1 text-sm text-red-600">
-              {errors.maxParticipants.message}
+              {errors.maxParticipants.message?.toString()}
             </p>
           )}
         </div>
@@ -267,7 +272,7 @@ export default function CreateEventForm() {
           />
           {errors.price && (
             <p className="mt-1 text-sm text-red-600">
-              {errors.price.message}
+              {errors.price.message?.toString()}
             </p>
           )}
         </div>
@@ -276,7 +281,7 @@ export default function CreateEventForm() {
           <label className="block text-sm font-medium text-gray-700">
             Теги
           </label>
-          <div className="flex gap-2 mb-2">
+          <div className="flex flex-wrap gap-2 mb-2">
             {tags.map((tag, index) => (
               <span
                 key={index}
@@ -311,7 +316,7 @@ export default function CreateEventForm() {
           </div>
           {errors.tags && (
             <p className="mt-1 text-sm text-red-600">
-              {errors.tags.message}
+              {typeof errors.tags.message === 'string' ? errors.tags.message : 'Помилка валідації тегів'}
             </p>
           )}
         </div>

@@ -1,14 +1,13 @@
 import React from 'react';
 import EventList from '../components/EventList';
 
-export default function HomePage() {
+const HomePage: React.FC = () => {
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Upcoming Events</h1>
-        <p className="mt-2 text-gray-600">Discover and register for events happening near you.</p>
-      </div>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8 text-center">Система управління подіями</h1>
       <EventList />
     </div>
   );
-}
+};
+
+export default HomePage;
